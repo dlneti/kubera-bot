@@ -1,6 +1,8 @@
 # folders
 venv
 __pycache__
+dev
 
 # editor
 .vscode
+*.code-workspace

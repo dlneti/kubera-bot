@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime
 
 def setup_logging(name="", initial=False, prefix_path="", class_name=False):
     # create logger
@@ -33,3 +34,22 @@ def _get_logger_name(source, prefix_path, class_name):
         logger_name.append(source.__class__.__name__)
 
     return ".".join(logger_name)
+
+
+def convert_timestamp(timestamp):
+    if isinstance(timestamp, list):
+        converted = []
+        for t in timestamp:
+            converted.append(convert_timestamp(t))
+        return converted
+
+    # convert to integer
+    timestamp = int(timestamp)
+
+    # convert to seconds from ms
+    if len(str(timestamp)) == 13:
+        timestamp /= 1000
+
+    return datetime.fromtimestamp(timestamp)
+
+# print(convert_timestamp([datetime.timestamp(datetime.now()) for i in range(10)]))

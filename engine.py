@@ -3,8 +3,12 @@ import aiohttp
 import logging
 
 from abc import abstractmethod
+from datetime import datetime
 
 from base import Base
+from models import (
+    Candlestick
+)
 from utils import setup_logging
 
 logger = setup_logging(__name__)
@@ -14,19 +18,31 @@ class Connector(Base):
         self.session = False
         self.wss_data_count = 0
 
-        self.api_endpoint = "abstract"
-        self.wss_endpoint = "abstract"
+        # self.api_endpoint = "abstract"
+        # self.wss_endpoint = "abstract"
 
         self.logger = setup_logging(self, class_name=True, prefix_path=__name__)
 
 
     async def __aenter__(self):
         # create session on enter
+        self.logger.info("Starting session")
         self.session = aiohttp.ClientSession()
         return self
         
     async def __aexit__(self, *args):
+        self.logger.info("Closing session")
         await self.session.close()
+    
+    @property
+    @abstractmethod
+    def api_endpoint():
+        pass
+    
+    @property
+    @abstractmethod
+    def wss_endpoint():
+        pass
     
     async def _request(self, endpoint, params={}):
         """Creates HTTP request
@@ -40,8 +56,8 @@ class Connector(Base):
         """
         url = f"{self.api_endpoint}/{endpoint}"
         
-        self.logger.info(f"GET request to: {url}")
-        async with self.session.get(url) as response:
+        self.logger.info(f"GET request to: {url} | params: {params}")
+        async with self.session.get(url, params=params) as response:
             return await response.text()
 
     async def _wss_listen(self, url):
@@ -51,17 +67,17 @@ class Connector(Base):
             url (string): websocket url
         """
         self.logger.info(f"Connecting to websocket: {url}")
-        wss = await self.session.ws_connect(url)
+        self.wss = await self.session.ws_connect(url)
         
         while True:
-            if wss.closed:
+            if self.wss.closed:
                 self.logger.info("Connection is closed, exiting")
                 break
-            msg = await wss.receive()
-            await self._handle_wss(msg, wss)
+            msg = await self.wss.receive()
+            await self._handle_wss(msg)
 
 
-    async def _handle_wss(self, message, websocket):
+    async def _handle_wss(self, message):
         """Handler function for different incoming frames from websocket stream
 
         Args:
@@ -71,7 +87,7 @@ class Connector(Base):
         msg_type = message.type
         if self.wss_data_count > 2:
             self.logger.info("Closing websocket")
-            await websocket.close()
+            await self.wss.close()
             return
 
         if msg_type is aiohttp.WSMsgType.TEXT:
@@ -83,17 +99,17 @@ class Connector(Base):
         elif msg_type is aiohttp.WSMsgType.ERROR:
             self._handle_wss_error(message.data)
 
-    @abstractmethod
-    def _handle_wss_data(self, data):
-        raise NotImplementedError("Abstract method")
 
-    def _handle_wss_ping(self):
+    def _handle_wss_ping(self, data):
         self.logger.info("Replying to ping frame")
-        websocket.pong()
+        self.wss.pong()
 
-    def _handle_wss_close(self):
+    def _handle_wss_close(self, data):
         self.logger.info("Received close frame from websocket")
 
     def _handle_wss_error(self, data):
         self.logger.warning(message)
 
+    @abstractmethod
+    def _handle_wss_data(self, data):
+        pass
