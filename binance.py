@@ -19,8 +19,6 @@ class Binance(engine.Connector):
     
     def __init__(self):
         super().__init__()
-        # self.api_endpoint = self.api_endpoint
-        # self.wss_endpoint = self.api_endpoint
 
         self.db = database.DbManager()
         self.logger = setup_logging(self, class_name=True, prefix_path=__name__)
@@ -67,7 +65,8 @@ class Binance(engine.Connector):
         objects = [self._convert_response_candlestick(candlestick, pair, interval) for candlestick in json.loads(response)]
         self.db.save(objects)
 
-        return response
+        return [candlestick.json for candlestick in objects]
+
 
     def _convert_response_candlestick(self, response, pair, interval):
         (

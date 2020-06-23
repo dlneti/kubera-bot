@@ -1,3 +1,6 @@
+import json
+
+from dataclasses import dataclass, asdict
 from datetime import datetime
 
 from sqlalchemy import Column, String, TIMESTAMP, BigInteger, Integer, Date
@@ -5,7 +8,27 @@ from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
 
-class Candlestick(Base):
+class ModelBase:
+    def _to_json(self):
+        """converts object to JSON representation
+
+        Returns:
+            [JSON]: JSON representation of object
+        """
+        d = asdict(self)
+        
+        # delete id for now
+        del d["id"]
+        
+        # convert datetimes to timestamp
+        for key, value in d.items():
+            if isinstance(value, datetime):
+                d[key] = int(datetime.timestamp(value))
+
+        return json.loads(json.dumps(d))
+
+@dataclass
+class Candlestick(Base, ModelBase):
     __tablename__ = 'candlestick'
 
     id = Column(BigInteger, primary_key=True)
@@ -20,6 +43,19 @@ class Candlestick(Base):
     trades_amount = Column(String)
     pair = Column(String)
     interval = Column(String)
+
+    id: int
+    open_time: int
+    open: str
+    high: str
+    low: str
+    close: str
+    volume: str
+    close_time: int
+    quote_asset_volume: str
+    trades_amount: str
+    pair: str
+    interval: str
 
     def __init__(
         self,
@@ -47,3 +83,5 @@ class Candlestick(Base):
         self.trades_amount = trades_amount
         self.pair = pair
         self.interval = interval
+
+        self.json = self._to_json()

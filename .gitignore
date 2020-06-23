@@ -6,3 +6,6 @@ dev
 # editor
 .vscode
 *.code-workspace
+
+# dev
+playground.py
