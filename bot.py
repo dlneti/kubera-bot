@@ -10,7 +10,7 @@ logger = setup_logging(initial=True)
 
 async def main(loop):
     async with binance.Binance() as client:
-        response = await client.get_candlesticks("ETHUSDT")
+        response = await client.get_candlesticks("BTCUSDT")
         # await client._wss_listen()
 
 

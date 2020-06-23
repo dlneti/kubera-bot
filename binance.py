@@ -7,6 +7,7 @@ import engine
 import database
 from models import Candlestick
 from utils import setup_logging, convert_timestamp
+from exceptions import BadResponseError
 
 logger = setup_logging(__name__)
 
@@ -60,9 +61,12 @@ class Binance(engine.Connector):
             "limit": limit
         }
 
-        response = await self._request("klines", params=params)
+        try:
+            response = await self.request("klines", params=params)
+        except BadResponseError:
+            return None
 
-        objects = [self._convert_response_candlestick(candlestick, pair, interval) for candlestick in json.loads(response)]
+        objects = [self._convert_response_candlestick(candlestick, pair, interval) for candlestick in response]
         self.db.save(objects)
 
         return [candlestick.json for candlestick in objects]

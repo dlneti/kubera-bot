@@ -1,6 +1,7 @@
 import asyncio
 import aiohttp
 import logging
+import json
 
 from abc import abstractmethod
 from datetime import datetime
@@ -10,6 +11,7 @@ from models import (
     Candlestick
 )
 from utils import setup_logging
+from exceptions import BadResponseError
 
 logger = setup_logging(__name__)
 
@@ -17,9 +19,6 @@ class Connector(Base):
     def __init__(self):
         self.session = False
         self.wss_data_count = 0
-
-        # self.api_endpoint = "abstract"
-        # self.wss_endpoint = "abstract"
 
         self.logger = setup_logging(self, class_name=True, prefix_path=__name__)
 
@@ -44,6 +43,15 @@ class Connector(Base):
     def wss_endpoint():
         pass
     
+    async def request(self, *a, **kw):
+        response = await self._request(*a, **kw)
+
+        if response["ok"]:
+            return response["data"]
+
+        raise BadResponseError(response["error"])
+
+
     async def _request(self, endpoint, params={}):
         """Creates HTTP request
 
@@ -58,8 +66,41 @@ class Connector(Base):
         
         self.logger.info(f"GET request to: {url} | params: {params}")
         async with self.session.get(url, params=params) as response:
-            return await response.text()
+            return await self._validate_response(response)
 
+
+    async def _validate_response(self, response):
+        text = await response.text()
+
+        if response.status != 200:
+            self.logger.warning("Bad response")
+            self.logger.warning(f"Status: {response.status}")
+            self.logger.warning(f"Reason: {response.reason}")
+            self.logger.warning(f"URL: {response.url}")
+            self.logger.warning(f"Response: {text}")
+            return self._get_error_response(response, text)
+
+        return self._get_ok_response(response, text)
+
+    
+    def _get_ok_response(self, response, text):
+        return {
+            "ok": True,
+            "data": json.loads(text) if text else ""
+        }
+
+
+    def _get_error_response(self, response, text=""):
+        return {
+            "ok": False,
+            "error": {
+                "status": response.status,
+                "reason": response.reason,
+                "url": response.url,
+                "text": text,
+            }
+        }
+    
     async def _wss_listen(self, url):
         """Connects to websocket stream at specified url
 
