@@ -63,8 +63,27 @@ def convert_timestamp(timestamp):
 
     # convert to seconds from ms
     if len(str(timestamp)) == 13:
-        timestamp /= 1000
+        timestamp = int(timestamp / 1000)
+    
+    assert (len(str(timestamp)) == 10), f"Bad timestamp! {timestamp}"
 
     return datetime.fromtimestamp(timestamp)
 
 # print(convert_timestamp([datetime.timestamp(datetime.now()) for i in range(10)]))
+
+
+def from_sc_to_human(msg: str) -> str:
+    """Converts snkce_case to Human readable
+
+    Args:
+        msg (str): snakce_case string
+
+    Returns:
+        str: converted
+    """
+    chunks = msg.split("_")
+    if len(chunks) == 1:
+        return chunks[0].capitalize()
+    
+    return " ".join(chunks).capitalize()
+    

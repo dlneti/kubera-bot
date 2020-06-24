@@ -98,7 +98,7 @@ class GoldenCross(Indicator):
             
             previous_signal = signal_arr[index - 1][0]
             if previous_signal != signal and index != 0 and not np.isnan(previous_signal):
-                gc = True       # signal has changed, golden cross at this spot
+                gc = True       # signal has changed, golden cross detected at this spot
 
             signal_arr.append((signal, gc))
             index += 1

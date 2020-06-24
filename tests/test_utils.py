@@ -39,5 +39,15 @@ class TestConvertTimestamp(unittest.TestCase):
         self.assertEquals(result_s.year, now.year)
 
 
+class ConvertSnakeCase(unittest.TestCase):
+    def test_returns_correctly_converted_string(self):
+        """
+        it returns correctly parsed string from snake_case
+        """
+        self.assertEqual(utils.from_sc_to_human(""), "")
+        self.assertEqual(utils.from_sc_to_human("test_snake_case"), "Test snake case")
+        self.assertEqual(utils.from_sc_to_human("snake"), "Snake")
+
+
 if __name__ == "__main__":
     unittest.main()

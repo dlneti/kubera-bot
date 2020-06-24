@@ -9,6 +9,8 @@ from models import Candlestick
 from utils import setup_logging, convert_timestamp
 from exceptions import BadResponseError
 
+from pprint import pprint
+
 logger = setup_logging(__name__)
 
 
@@ -32,9 +34,9 @@ class Binance(engine.Connector):
     def wss_endpoint(self):
         return f"{self.WSS_URL}{self.WSS_URI}"
     
-    async def _wss_listen(self):
-        endpoint = "!miniTicker@arr"
-        url = f"{WSS_URL}{WSS_URI}/{endpoint}"
+    async def _wss_listen(self, endpoint):
+        # endpoint = "!miniTicker@arr"
+        url = f"{self.wss_endpoint}/{endpoint}"
         await super()._wss_listen(url)
 
     def _handle_wss_data(self, data):
@@ -43,8 +45,23 @@ class Binance(engine.Connector):
         Args:
             data (json): incoming data from websocket stream
         """
-        self.logger.debug(json.loads(data))
-        self.wss_data_count += 1
+        # self.logger.debug(json.loads(data))
+
+        ## Steps:
+        # 1. parse candlestick from data frame
+        data = json.loads(data)
+        c_data = data.get('k', None)
+
+        c = Candlestick.extract_candlestick_from_wss(c_data) if c_data is not None else None
+        print(f"{convert_timestamp(data.get('E'))} {c.pair} {c.interval}")
+
+        # 2. perform TA 
+        # 3. generate signals
+        # 4. if candlestick is closed save to db
+        if c_data.get("x", None):
+            self.logger.info(f"Saving candlestick to database")
+            self.db.save(c)
+
 
     async def get_server_time(self):
         """Fetches current binance server time
@@ -67,41 +84,8 @@ class Binance(engine.Connector):
             self.logger.info(e)
             return None
 
-        objects = [self._convert_response_candlestick(candlestick, pair, interval) for candlestick in response]
+        objects = [Candlestick.extract_candlestick_from_api(candlestick, pair, interval) for candlestick in response]
         
         self.db.save(objects)
 
         return [candlestick.json for candlestick in objects]
-
-
-    def _convert_response_candlestick(self, response, pair, interval):
-        (
-            open_time,
-            open,
-            high,
-            low,
-            close,
-            volume,
-            close_time,
-            quote_asset_volume,
-            trades_amount,
-            *_
-         ) = response
-
-        # convert timestamps to datetime
-        open_time, close_time = convert_timestamp([open_time, close_time])
-
-        return Candlestick(
-            open_time,
-            open,
-            high,
-            low,
-            close,
-            volume,
-            close_time,
-            quote_asset_volume,
-            trades_amount,
-            pair,
-            interval
-        )
-    

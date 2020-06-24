@@ -18,7 +18,6 @@ logger = setup_logging(__name__)
 class Connector(Base):
     def __init__(self):
         self.session = False
-        self.wss_data_count = 0
 
         self.logger = setup_logging(self, class_name=True, prefix_path=__name__)
 
@@ -126,10 +125,6 @@ class Connector(Base):
             websocket (aiohttp.client_ws.ClientWebSocketResponse): webscoket instance
         """
         msg_type = message.type
-        if self.wss_data_count > 2:
-            self.logger.info("Closing websocket")
-            await self.wss.close()
-            return
 
         if msg_type is aiohttp.WSMsgType.TEXT:
             self._handle_wss_data(message.data)
