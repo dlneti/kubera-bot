@@ -1,5 +1,19 @@
 import logging
 from datetime import datetime
+from time import time
+
+
+# wrappers
+
+def timeit(f):
+    def wrapper(*a, **kw):
+        now = time()
+        res = f(*a, **kw)
+        print(f"Operation {f.__name__} took {time() - now} seconds")
+        return res
+    return wrapper
+    
+# logging
 
 def setup_logging(name="", initial=False, prefix_path="", class_name=False):
     # create logger
@@ -35,6 +49,7 @@ def _get_logger_name(source, prefix_path, class_name):
 
     return ".".join(logger_name)
 
+# misc
 
 def convert_timestamp(timestamp):
     if isinstance(timestamp, list):

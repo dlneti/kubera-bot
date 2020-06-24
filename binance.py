@@ -54,7 +54,7 @@ class Binance(engine.Connector):
         """
         return await self._request("time")
 
-    async def get_candlesticks(self, pair, limit=10, interval="5m"):
+    async def get_candlesticks(self, pair, limit=10, interval="15m"):
         params = {
             "symbol": pair.upper(),
             "interval": interval,
@@ -63,10 +63,12 @@ class Binance(engine.Connector):
 
         try:
             response = await self.request("klines", params=params)
-        except BadResponseError:
+        except BadResponseError as e:
+            self.logger.info(e)
             return None
 
         objects = [self._convert_response_candlestick(candlestick, pair, interval) for candlestick in response]
+        
         self.db.save(objects)
 
         return [candlestick.json for candlestick in objects]
